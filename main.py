@@ -516,8 +516,13 @@ def main(page: ft.Page):
 
     # ==================== Page 4: 등록 완료 ====================
 
+    def on_page4_click(e):
+        """Page 4에서 화면 터치 시 즉시 첫 화면으로"""
+        print("Page 4 클릭 감지 - 첫 화면으로 복귀")
+        reset_to_start()
+
     def create_page4():
-        # 4페이지 디자인 이미지 표시
+        # 4페이지 디자인 이미지 표시 (클릭 시 즉시 첫 화면으로)
         return ft.Container(
             content=ft.Image(
                 src="design/4_Screen_View.png",
@@ -527,6 +532,7 @@ def main(page: ft.Page):
             ),
             width=1080,
             height=1920,
+            on_click=on_page4_click,
         )
 
     # ==================== 페이지 전환 ====================
