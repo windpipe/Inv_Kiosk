@@ -29,3 +29,6 @@ Thumbs.db
 
 # Flet
 .flet/
+
+# Windows null file
+nul

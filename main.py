@@ -3,8 +3,57 @@ import time
 import threading
 import requests
 from datetime import datetime
+import subprocess
+import re
+
+def check_and_connect_wifi():
+    """현재 WiFi SSID 확인하고 INVEN2가 아니면 연결"""
+    try:
+        # 현재 연결된 WiFi SSID 확인
+        result = subprocess.run(
+            ['netsh', 'wlan', 'show', 'interfaces'],
+            capture_output=True,
+            text=True,
+            encoding='cp949'
+        )
+
+        # SSID 추출
+        current_ssid = None
+        for line in result.stdout.split('\n'):
+            if 'SSID' in line and 'BSSID' not in line:
+                # "    SSID                   : INVEN2" 형식에서 SSID 추출
+                match = re.search(r':\s*(.+)', line)
+                if match:
+                    current_ssid = match.group(1).strip()
+                    break
+
+        print(f"현재 WiFi SSID: {current_ssid}")
+
+        # INVEN2가 아니면 연결 시도
+        if current_ssid != "INVEN2":
+            print("INVEN2로 WiFi 연결 시도...")
+            connect_result = subprocess.run(
+                ['netsh', 'wlan', 'connect', 'name=INVEN2'],
+                capture_output=True,
+                text=True,
+                encoding='cp949'
+            )
+
+            if "연결 요청이 완료되었습니다" in connect_result.stdout or "successfully" in connect_result.stdout.lower():
+                print("INVEN2 연결 성공")
+                time.sleep(2)  # 연결 대기
+            else:
+                print(f"INVEN2 연결 실패: {connect_result.stdout}")
+        else:
+            print("이미 INVEN2에 연결되어 있습니다")
+
+    except Exception as e:
+        print(f"WiFi 체크 오류: {e}")
 
 def main(page: ft.Page):
+    # WiFi 체크 및 연결 (백그라운드에서 비동기 실행)
+    threading.Thread(target=check_and_connect_wifi, daemon=True).start()
+
     # 페이지 설정 - 세로모드 키오스크 (1080 x 1920)
     page.title = "Fantasy Inventory Kiosk"
     page.window.width = 1080
