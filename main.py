@@ -5,6 +5,7 @@ import requests
 from datetime import datetime
 import subprocess
 import re
+import traceback
 
 def check_and_connect_wifi():
     """현재 WiFi SSID 확인하고 INVEN2가 아니면 연결"""
@@ -14,8 +15,14 @@ def check_and_connect_wifi():
             ['netsh', 'wlan', 'show', 'interfaces'],
             capture_output=True,
             text=True,
-            encoding='cp949'
+            encoding='cp949',
+            errors='replace'  # 인코딩 오류 시 문자 대체
         )
+
+        # stdout가 None이거나 비어있는 경우 처리
+        if not result.stdout:
+            print("WiFi 정보를 가져올 수 없습니다")
+            return
 
         # SSID 추출
         current_ssid = None
@@ -36,19 +43,21 @@ def check_and_connect_wifi():
                 ['netsh', 'wlan', 'connect', 'name=INVEN2'],
                 capture_output=True,
                 text=True,
-                encoding='cp949'
+                encoding='cp949',
+                errors='replace'
             )
 
-            if "연결 요청이 완료되었습니다" in connect_result.stdout or "successfully" in connect_result.stdout.lower():
+            if connect_result.stdout and ("연결 요청이 완료되었습니다" in connect_result.stdout or "successfully" in connect_result.stdout.lower()):
                 print("INVEN2 연결 성공")
                 time.sleep(2)  # 연결 대기
             else:
-                print(f"INVEN2 연결 실패: {connect_result.stdout}")
+                print(f"INVEN2 연결 실패: {connect_result.stdout if connect_result.stdout else 'stdout 없음'}")
         else:
             print("이미 INVEN2에 연결되어 있습니다")
 
     except Exception as e:
         print(f"WiFi 체크 오류: {e}")
+        traceback.print_exc()
 
 def main(page: ft.Page):
     # WiFi 체크 및 연결 (백그라운드에서 비동기 실행)
@@ -128,6 +137,7 @@ def main(page: ft.Page):
             page.update()
         except Exception as e:
             print(f"타임아웃 디스플레이 업데이트 오류: {e}")
+            traceback.print_exc()
 
     def reset_to_start():
         """시작 페이지로 초기화"""
@@ -141,6 +151,7 @@ def main(page: ft.Page):
             update_page()
         except Exception as e:
             print(f"페이지 리셋 오류: {e}")
+            traceback.print_exc()
 
     def timeout_monitor():
         """백그라운드에서 타임아웃 체크 (페이지 2, 3에서만 동작)"""
@@ -166,6 +177,7 @@ def main(page: ft.Page):
                     remaining_seconds.current = TIMEOUT_SECONDS
             except Exception as e:
                 print(f"타임아웃 모니터 오류: {e}")
+                traceback.print_exc()
 
     def start_timeout_monitor():
         """타임아웃 모니터 스레드 시작"""
@@ -605,6 +617,7 @@ def main(page: ft.Page):
                     page.run_task(update_page)
                 except Exception as e:
                     print(f"자동 복귀 오류: {e}")
+                    traceback.print_exc()
 
             threading.Thread(target=auto_return, daemon=True).start()
 
