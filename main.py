@@ -43,15 +43,18 @@ def check_and_connect_wifi():
                 ['netsh', 'wlan', 'connect', 'name=INVEN2'],
                 capture_output=True,
                 text=True,
-                encoding='cp949',
+                encoding='utf-8',  # UTF-8로 변경
                 errors='replace'
             )
 
-            if connect_result.stdout and ("연결 요청이 완료되었습니다" in connect_result.stdout or "successfully" in connect_result.stdout.lower()):
+            # 리턴 코드로 성공 여부 확인 (0이면 성공)
+            if connect_result.returncode == 0:
                 print("INVEN2 연결 성공")
                 time.sleep(2)  # 연결 대기
             else:
-                print(f"INVEN2 연결 실패: {connect_result.stdout if connect_result.stdout else 'stdout 없음'}")
+                # 실패 시 출력 (깨질 수 있음)
+                error_msg = connect_result.stdout if connect_result.stdout else connect_result.stderr if connect_result.stderr else 'Unknown error'
+                print(f"INVEN2 연결 실패 (코드: {connect_result.returncode}): {error_msg}")
         else:
             print("이미 INVEN2에 연결되어 있습니다")
 
@@ -127,8 +130,8 @@ def main(page: ft.Page):
         last_interaction_time.current = time.time()
         remaining_seconds.current = TIMEOUT_SECONDS
 
-    def update_timeout_display_safe():
-        """타임아웃 디스플레이 업데이트 (스레드 안전)"""
+    async def update_timeout_display_safe():
+        """타임아웃 디스플레이 업데이트 (스레드 안전 async)"""
         try:
             if timeout_display_page2.current:
                 timeout_display_page2.current.value = f"{remaining_seconds.current}초"
@@ -139,8 +142,8 @@ def main(page: ft.Page):
             print(f"타임아웃 디스플레이 업데이트 오류: {e}")
             traceback.print_exc()
 
-    def reset_to_start():
-        """시작 페이지로 초기화"""
+    async def reset_to_start_async():
+        """시작 페이지로 초기화 (async 버전)"""
         processing_selection.current = False
         current_page.current = 0
         user_name.current = ""
@@ -152,6 +155,16 @@ def main(page: ft.Page):
         except Exception as e:
             print(f"페이지 리셋 오류: {e}")
             traceback.print_exc()
+
+    def reset_to_start():
+        """시작 페이지로 초기화 (동기 버전 - 일반 이벤트 핸들러용)"""
+        processing_selection.current = False
+        current_page.current = 0
+        user_name.current = ""
+        selected_icon.current = None
+        last_interaction_time.current = time.time()
+        remaining_seconds.current = TIMEOUT_SECONDS
+        update_page()
 
     def timeout_monitor():
         """백그라운드에서 타임아웃 체크 (페이지 2, 3에서만 동작)"""
@@ -166,12 +179,12 @@ def main(page: ft.Page):
 
                     if remaining >= 0:
                         remaining_seconds.current = remaining
-                        # 스레드 안전하게 UI 업데이트
+                        # 스레드 안전하게 UI 업데이트 (async 함수 전달)
                         page.run_task(update_timeout_display_safe)
 
                     if elapsed >= TIMEOUT_SECONDS:
                         print(f"타임아웃 발생: {elapsed:.1f}초 경과. 시작 페이지로 복귀")
-                        page.run_task(reset_to_start)
+                        page.run_task(reset_to_start_async)
                 else:
                     # 페이지 1, 4에서는 타이머 리셋
                     remaining_seconds.current = TIMEOUT_SECONDS
@@ -609,12 +622,9 @@ def main(page: ft.Page):
         if current_page.current == 3:
             def auto_return():
                 time.sleep(10)  # 10초 대기
-                processing_selection.current = False  # 리셋
-                current_page.current = 0
-                user_name.current = ""  # 상태 초기화
-                selected_icon.current = None
                 try:
-                    page.run_task(update_page)
+                    # async 함수를 사용하여 페이지 리셋
+                    page.run_task(reset_to_start_async)
                 except Exception as e:
                     print(f"자동 복귀 오류: {e}")
                     traceback.print_exc()
