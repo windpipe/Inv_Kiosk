@@ -1,5 +1,48 @@
 # Update Log - 2025-12-07
 
+## Version 1.1.1 - Error Logging & WiFi Fixes (2025-12-07)
+
+### 버그 수정
+
+#### 오류 로깅 개선
+- **전체 스택 트레이스 출력**
+  - 모든 예외 처리에 `traceback.print_exc()` 추가
+  - 빈 오류 메시지 대신 상세한 디버깅 정보 제공
+  - 타임아웃 모니터, 자동 복귀, WiFi 체크 등 모든 백그라운드 작업 포함
+
+#### WiFi 연결 인코딩 문제 해결
+- **UnicodeDecodeError 수정**
+  - `subprocess.run()`에 `errors='replace'` 파라미터 추가
+  - cp949 인코딩 실패 시 문자 대체로 처리
+  - `stdout` None 체크 추가
+
+- **안정성 개선**
+  - WiFi 정보를 가져올 수 없을 때 조기 종료
+  - SSID 추출 실패 시 안전한 처리
+
+### 수정된 오류들
+1. ✅ `UnicodeDecodeError: 'cp949' codec can't decode byte 0xec`
+2. ✅ `WiFi 체크 오류: 'NoneType' object has no attribute 'split'`
+3. ✅ 타임아웃 모니터 빈 오류 메시지
+4. ✅ 자동 복귀 빈 오류 메시지
+
+### 기술적 세부사항
+```python
+# WiFi 인코딩 문제 해결
+result = subprocess.run(
+    ['netsh', 'wlan', 'show', 'interfaces'],
+    encoding='cp949',
+    errors='replace'  # 인코딩 오류 시 문자 대체
+)
+
+# 전체 트레이스 출력
+except Exception as e:
+    print(f"오류: {e}")
+    traceback.print_exc()  # 상세한 스택 트레이스
+```
+
+---
+
 ## Version 1.1.0 - Stability & UX Improvements
 
 ### 주요 변경사항
