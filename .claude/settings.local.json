@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python main.py:*)",
+      "Bash(taskkill:*)",
+      "Bash(nul)",
+      "Bash(copy main.py main_backup.py)",
+      "Bash(copy:*)",
+      "Bash(cmd /c \"copy main.py main_backup.py && copy main_fixed.py main.py\")",
+      "Bash(powershell -Command \"Copy-Item main.py main_backup.py; Copy-Item main_fixed.py main.py -Force\")",
+      "Bash(timeout /t 2)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(del nul 2)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
