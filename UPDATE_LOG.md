@@ -1,5 +1,57 @@
 # Update Log - 2025-12-07
 
+## Version 1.1.2 - Async Function Fix (2025-12-07)
+
+### 버그 수정
+
+#### page.run_task() Async 요구사항 수정
+- **AssertionError 해결**
+  - `page.run_task()`는 async 함수만 받을 수 있음
+  - `update_timeout_display_safe()` → async 함수로 변환
+  - `reset_to_start_async()` 추가 (백그라운드 스레드용)
+  - `reset_to_start()` 유지 (동기 이벤트 핸들러용)
+
+- **타임아웃 모니터 안정성**
+  - `timeout_monitor()`에서 async 함수 호출로 변경
+  - `auto_return()`에서 `reset_to_start_async()` 사용
+
+#### WiFi 연결 개선
+- **인코딩 방식 변경**
+  - cp949 → utf-8로 변경
+  - `returncode`로 성공/실패 판단 (메시지 파싱 제거)
+  - 로컬라이즈된 메시지 의존성 제거
+
+### 수정된 오류들
+1. ✅ `AssertionError: assert asyncio.iscoroutinefunction(handler)`
+2. ✅ 타임아웃 모니터 반복 오류 (매초 발생)
+3. ✅ 자동 복귀 AssertionError
+
+### 기술적 세부사항
+```python
+# WRONG - AssertionError 발생
+def update_timeout_display_safe():
+    page.update()
+
+page.run_task(update_timeout_display_safe)  # ERROR!
+
+# CORRECT - async 함수 사용
+async def update_timeout_display_safe():
+    page.update()
+
+page.run_task(update_timeout_display_safe)  # 정상 작동
+
+# Dual Pattern: 동기/비동기 버전 분리
+async def reset_to_start_async():
+    """백그라운드 스레드용"""
+    # ... 리셋 로직
+
+def reset_to_start():
+    """일반 이벤트 핸들러용"""
+    # ... 리셋 로직
+```
+
+---
+
 ## Version 1.1.1 - Error Logging & WiFi Fixes (2025-12-07)
 
 ### 버그 수정
